@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Corkboard</RootNamespace>
+    <AssemblyName>Corkboard</AssemblyName>
+    <AssemblyTitle>截图线索板</AssemblyTitle>
+    <Product>Corkboard</Product>
+    <Company>Corkboard</Company>
+    <Version>1.0.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Corkboard.ico</ApplicationIcon>
+  </PropertyGroup>
+
+</Project>

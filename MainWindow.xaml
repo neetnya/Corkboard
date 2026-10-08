@@ -1,0 +1,51 @@
+<Window x:Class="Corkboard.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Corkboard.Controls"
+        Title="截图线索板" Height="820" Width="1240"
+        WindowStartupLocation="CenterScreen"
+        Closing="Window_Closing">
+    <DockPanel>
+        <!-- 顶栏：分组管理 -->
+        <Border DockPanel.Dock="Top" Background="#F3F3F3" BorderBrush="#DDD" BorderThickness="0,0,0,1" Padding="8,6">
+            <StackPanel Orientation="Horizontal">
+                <ComboBox x:Name="GroupCombo" Width="160" Height="28" VerticalContentAlignment="Center" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="GroupCombo_SelectionChanged"/>
+                <Button Content="新建分组" Margin="10,0,0,0" Click="NewGroup_Click"/>
+                <Button Content="重命名" Margin="6,0,0,0" Click="RenameGroup_Click"/>
+                <Button Content="删除分组" Margin="6,0,0,0" Click="DeleteGroup_Click"/>
+                <Button Content="添加便条" Margin="18,0,0,0" Click="AddNote_Click"/>
+                <Button Content="设置" Margin="6,0,0,0" Click="Settings_Click"/>
+                <TextBlock x:Name="HotkeyHint" VerticalAlignment="Center" Margin="18,0,0,0" Foreground="#777"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 右侧缩略图列表 -->
+        <Border DockPanel.Dock="Right" Width="150" BorderBrush="#DDD" BorderThickness="1,0,0,0" Background="#FAFAFA">
+            <DockPanel>
+                <ListBox x:Name="ShotList" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         PreviewMouseLeftButtonUp="ShotList_PreviewMouseLeftButtonUp">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="6">
+                                <StackPanel.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="删除" Click="ShotListDeleteItem_Click"/>
+                                    </ContextMenu>
+                                </StackPanel.ContextMenu>
+                                <Border BorderBrush="#CCC" BorderThickness="1" Background="White">
+                                    <Image Source="{Binding Thumbnail}" Width="120" Stretch="Uniform"/>
+                                </Border>
+                                <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
+                                           FontSize="10" Foreground="#888" Margin="2,3,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- 白板 -->
+        <controls:BoardCanvas x:Name="Board" ClipToBounds="True" Background="White"/>
+    </DockPanel>
+</Window>
