@@ -35,7 +35,6 @@
 | **非破坏性编辑** | 标注以矢量数据保存，**不修改**右侧原始截图 |
 | **写回原图** | 右键「写入右侧」把标注扁平合成并覆盖原 PNG |
 | **删除** | 左侧删除仅移除白板图片；右侧删除同时移除文件与白板引用 |
-| **托盘常驻** | 最小化到托盘，快捷键继续生效；关闭按钮则直接退出 |
 | **可移植** | 数据全部存放在软件目录，绿色运行 |
 | **零依赖** | 不使用任何第三方 NuGet 包 |
 
@@ -75,7 +74,6 @@ Corkboard/
 │   ├── StoreService.cs      # JSON + 文件夹 + PNG 读写
 │   ├── ScreenCapture.cs     # BitBlt 屏幕捕获
 │   ├── GlobalHotkeyService.cs  # RegisterHotKey 全局热键
-│   ├── TrayIconService.cs   # Shell_NotifyIcon 托盘
 │   ├── ThumbnailCache.cs    # 缩略图缓存
 │   └── ColorUtil.cs         # 颜色转换
 └── Controls/                # 自定义控件
@@ -172,12 +170,13 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 | 白板图片 | 删除 | 仅从白板移除 |
 | 列表项 | 删除 | 左右两侧一起删除 |
 
-### 系统托盘与退出
+### 窗口与退出
 
-- **点击窗口关闭按钮 → 直接退出程序**（自动保存白板、注销全局快捷键、移除托盘图标，进程完全结束）。
-- **最小化窗口 → 收进系统托盘**（进程保留，全局快捷键继续可用）。
-- 双击托盘图标 → 显示主窗口。
-- 右键托盘图标 → 「显示主窗口」/「退出」。
+- **点击窗口关闭按钮 → 直接退出程序**（自动保存白板、注销全局快捷键，进程完全结束）。
+- **最小化窗口 → 普通最小化到任务栏**（不会被收进托盘；进程保留在后台，全局快捷键仍然可用）。
+- 本程序**没有系统托盘图标**。
+
+> 全局快捷键在程序运行期间一直有效——即使窗口最小化或不在前台。只有关闭程序才会注销快捷键。
 
 ---
 
@@ -222,11 +221,11 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 采用「**服务层 + 自定义控件 + 主窗口编排**」的轻量结构：
 
 - `StoreService`：唯一的持久化出入口（JSON 与 PNG 读写）。
-- `ScreenCapture` / `GlobalHotkeyService` / `TrayIconService`：纯 P/Invoke 实现，无第三方依赖。
+- `ScreenCapture` / `GlobalHotkeyService`：纯 P/Invoke 实现，无第三方依赖。
 - `BoardCanvas`：白板容器，维护**图片层（z < 10000）**与**便条层（z ≥ 10000）**两套独立层级，保证便条恒在图片之上。
 - `BoardImageControl`：单张白板图片，负责拖拽、置顶、锚点缩放、黑色边框与右键菜单。
 - `AnnotationCanvas`：画笔标注层，坐标存于**图像原始像素空间**，因此缩放/写回后严格对齐。
-- `MainWindow.xaml.cs`：集中编排分组切换、截图流程、白板读写、编辑窗口与托盘交互。
+- `MainWindow.xaml.cs`：集中编排分组切换、截图流程、白板读写与编辑窗口。
 
 > 交互密集的白板部分使用自定义控件 + Code-behind（而非纯 MVVM），因为拖拽/缩放/命中测试天然由鼠标事件驱动，直接实现更清晰。
 
@@ -238,7 +237,6 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 |---|---|
 | 屏幕捕获 | GDI `BitBlt` + `CreateBitmapSourceFromHBitmap` |
 | 全局快捷键 | `RegisterHotKey` + `HwndSource.AddHook` 处理 `WM_HOTKEY` |
-| 托盘图标 | `Shell_NotifyIcon` + `ExtractIconEx` 取应用图标 |
 | 缩放锚点不漂移 | 左上角缩放 + 用白板绝对坐标补偿位置 |
 | 命中区域随缩放 | 去掉控件透明背景，命中跟随缩放后的实际视觉范围 |
 | 扁平合成写回 | `RenderTargetBitmap` 以原始像素分辨率渲染（不含边框） |
@@ -261,7 +259,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 - **运行时提示「Windows 已保护你的电脑」/「未知发布者」（SmartScreen）**
   这是**未做代码签名**的正常现象，与应用本身安全与否无关：SmartScreen 只看「数字签名 + 下载声誉」，不看代码在做什么。点「更多信息 → 仍要运行」即可。
   想彻底消除：① 购买代码签名证书（EV 证书可立即获得声誉）；② 右键 exe → 属性 → 勾选「解除锁定」，消除「来自 Internet」标记。
-  本应用涉及屏幕捕获、全局热键、托盘常驻，这类行为在启发式扫描里比普通小工具更容易被提示，但源码就在本目录，可自行审阅。
+  本应用涉及屏幕捕获与全局热键，这类行为在启发式扫描里比普通小工具更容易被提示，但源码就在本目录，可自行审阅。
 
 - **发布的自包含单文件无法运行**
   优先使用框架依赖发布（`setup.ps1 -Publish`，本机需装 .NET 8 Desktop Runtime）。若仍失败，请查看 exe 同目录下的 `error.log`。
@@ -285,4 +283,4 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 powershell -ExecutionPolicy Bypass -File make-icon.ps1
 ```
 
-会输出 `Assets/Corkboard.ico`（exe/托盘图标）与 `Assets/Corkboard.png`（预览）。修改脚本中的绘制参数即可调整样式，之后重新构建生效。
+会输出 `Assets/Corkboard.ico`（exe 图标）与 `Assets/Corkboard.png`（预览）。修改脚本中的绘制参数即可调整样式，之后重新构建生效。

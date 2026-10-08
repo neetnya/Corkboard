@@ -25,8 +25,6 @@ public partial class MainWindow : Window
     private BoardImageControl? _editing;
     private EditorWindow? _editorWindow;
     private int _cascade;
-    private TrayIconService _tray = null!;
-    private const uint WM_TRAY = 0x8001; // WM_APP + 1
 
     public MainWindow()
     {
@@ -47,11 +45,6 @@ public partial class MainWindow : Window
         source?.AddHook(WndProc);
         _hotkeys.Register(hwnd, _store.Settings.RegionHotkey, _store.Settings.FullScreenHotkey);
         UpdateHotkeyHint();
-        _tray = new TrayIconService(hwnd, WM_TRAY);
-        _tray.DoubleClick += ShowMainWindow;
-        _tray.ShowRequested += ShowMainWindow;
-        _tray.ExitRequested += () => Close();
-        _tray.Show();
         PopulateGroups();
         SelectCurrentGroup();
     }
@@ -61,11 +54,6 @@ public partial class MainWindow : Window
         if (msg == GlobalHotkeyService.WM_HOTKEY)
         {
             _hotkeys.HandleMessage(msg, wParam, lParam);
-            handled = true;
-        }
-        else if (msg == WM_TRAY)
-        {
-            _tray.HandleMessage(msg, lParam);
             handled = true;
         }
         return IntPtr.Zero;
@@ -390,24 +378,10 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object sender, CancelEventArgs e)
     {
-        // 关闭即退出进程（不再隐藏到托盘）
+        // 关闭即退出进程
         FinishEdit();
         SaveCurrentBoard();
-        _tray.Dispose();
         _hotkeys.Dispose();
-    }
-
-    protected override void OnStateChanged(EventArgs e)
-    {
-        base.OnStateChanged(e);
-        if (WindowState == WindowState.Minimized) Hide();
-    }
-
-    private void ShowMainWindow()
-    {
-        Show();
-        WindowState = WindowState.Normal;
-        Activate();
     }
 
     // ---------- 工具 ----------
