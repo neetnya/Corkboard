@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,6 +26,7 @@ public partial class MainWindow : Window
     private BoardImageControl? _editing;
     private EditorWindow? _editorWindow;
     private int _cascade;
+    private bool _capturing;
 
     public MainWindow()
     {
@@ -140,40 +142,61 @@ public partial class MainWindow : Window
         SelectCurrentGroup();
     }
 
-    // ---------- 截图 ----------
+    // ---------- 截图（全程静默：不拉起、不激活主窗口）----------
+
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    private const int SW_HIDE = 0;
+    private const int SW_SHOWNOACTIVATE = 4;
+
+    /// <summary>窗口是否正显示在屏幕上（最小化或已隐藏都不算）。</summary>
+    private bool IsOnScreen => IsVisible && WindowState == WindowState.Normal;
+
+    private async Task CaptureSilentlyAsync(Func<Task<BitmapSource?>> capture)
+    {
+        if (_capturing) return; // 防重复触发
+        _capturing = true;
+
+        bool hide = IsOnScreen;
+        var hwnd = new WindowInteropHelper(this).Handle;
+        try
+        {
+            // 只有窗口真的显示在屏幕上时才临时隐藏，避免把自己拍进截图
+            if (hide && hwnd != IntPtr.Zero) ShowWindow(hwnd, SW_HIDE);
+            await Task.Delay(60);
+
+            BitmapSource? bmp = null;
+            try { bmp = await capture(); } catch { /* 截图失败忽略 */ }
+            if (bmp != null) AddScreenshot(bmp);
+        }
+        finally
+        {
+            // 恢复显示但不激活：不抢焦点、不把当前窗口（如游戏）切出去
+            if (hide && hwnd != IntPtr.Zero)
+            {
+                ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+                InvalidateVisual();
+            }
+            _capturing = false;
+        }
+    }
 
     private async void OnRegionHotkey()
     {
-        bool wasVisible = IsVisible;
-        Hide();
-        await Task.Delay(60);
-
-        Rect? region = null;
-        var sel = new RegionSelectorWindow();
-        sel.RegionSelected += r => region = r;
-        sel.ShowDialog();
-
-        if (region is Rect r2)
+        await CaptureSilentlyAsync(async () =>
         {
-            await Task.Delay(60);
-            try
-            {
-                AddScreenshot(ScreenCapture.CaptureRegion((int)r2.X, (int)r2.Y, (int)r2.Width, (int)r2.Height));
-            }
-            catch { /* 截图失败忽略 */ }
-        }
-
-        if (wasVisible) { Show(); Activate(); }
+            Rect? region = null;
+            var sel = new RegionSelectorWindow();
+            sel.RegionSelected += r => region = r;
+            sel.ShowDialog();
+            if (region is not Rect r) return null;
+            await Task.Delay(60); // 等遮罩窗口消失后再捕获
+            return ScreenCapture.CaptureRegion((int)r.X, (int)r.Y, (int)r.Width, (int)r.Height);
+        });
     }
 
     private async void OnFullHotkey()
     {
-        bool wasVisible = IsVisible;
-        Hide();
-        await Task.Delay(60);
-        try { AddScreenshot(ScreenCapture.CapturePrimaryScreen()); }
-        catch { }
-        if (wasVisible) { Show(); Activate(); }
+        await CaptureSilentlyAsync(() => Task.FromResult<BitmapSource?>(ScreenCapture.CapturePrimaryScreen()));
     }
 
     private void AddScreenshot(BitmapSource bmp)
@@ -184,6 +207,31 @@ public partial class MainWindow : Window
     }
 
     // ---------- 右侧列表 ----------
+
+    /// <summary>滚轮每格滚动固定像素，避免默认按整条目跳动过大。</summary>
+    private void ShotList_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (ShotList.Items.Count == 0) return;
+        var sv = FindScrollViewer(ShotList);
+        if (sv is null) return;
+        e.Handled = true;
+        // 像素模式下 VerticalOffset 以像素计；万一退化回条目模式，则每次滚 1 条
+        bool pixelMode = sv.ScrollableHeight > ShotList.Items.Count + 1;
+        double step = pixelMode ? 56.0 : 1.0;
+        sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta / 120.0 * step);
+    }
+
+    private static ScrollViewer? FindScrollViewer(DependencyObject root)
+    {
+        int n = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < n; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is ScrollViewer sv) return sv;
+            if (FindScrollViewer(child) is ScrollViewer found) return found;
+        }
+        return null;
+    }
 
     private void ShotList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
@@ -250,6 +298,17 @@ public partial class MainWindow : Window
         var note = new NoteControl(state) { Board = Board };
         note.Changed += SaveCurrentBoard;
         Board.AddNoteOnTop(note, state.X, state.Y);
+        SaveCurrentBoard();
+    }
+
+    /// <summary>清空白板：只清左侧，右侧截图列表与磁盘文件保留。</summary>
+    private void ClearBoard_Click(object sender, RoutedEventArgs e)
+    {
+        if (Board.Children.Count == 0) return;
+        if (MessageBox.Show(this, "确定清空白板？右侧截图列表与磁盘文件都会保留。",
+            "清空白板", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        FinishEdit();
+        Board.ClearAll();
         SaveCurrentBoard();
     }
 
