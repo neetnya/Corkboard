@@ -46,7 +46,7 @@ public partial class MainWindow : Window
         var hwnd = new WindowInteropHelper(this).Handle;
         var source = HwndSource.FromHwnd(hwnd);
         source?.AddHook(WndProc);
-        _hotkeys.Register(hwnd, _store.Settings.RegionHotkey, _store.Settings.FullScreenHotkey);
+        ApplyHotkeys(hwnd);
         UpdateHotkeyHint();
         PopulateGroups();
         SelectCurrentGroup();
@@ -71,6 +71,23 @@ public partial class MainWindow : Window
             "白板数据文件已损坏，本次以空白分组打开，不会覆盖原文件，直到你做出修改。" + bak,
             "数据未加载", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
+
+    private void ApplyHotkeys(IntPtr hwnd)
+    {
+        var r = _hotkeys.Register(hwnd, _store.Settings.RegionHotkey, _store.Settings.FullScreenHotkey);
+        if (r.Ok) return;
+        var parts = new System.Collections.Generic.List<string>();
+        if (!r.RegionOk)
+            parts.Add($"局部截图 {_store.Settings.RegionHotkey}" + DescribeHotkeyError(r.RegionError));
+        if (!r.FullOk)
+            parts.Add($"全屏截图 {_store.Settings.FullScreenHotkey}" + DescribeHotkeyError(r.FullError));
+        MessageBox.Show(this,
+            "快捷键注册失败，可能被其它程序占用，请到设置里换一组：\n" + string.Join("\n", parts),
+            "快捷键不可用", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private static string DescribeHotkeyError(int code)
+        => code == 1409 ? "（已被占用）" : code != 0 ? $"（错误 {code}）" : "";
 
     private void UpdateHotkeyHint()
         => HotkeyHint.Text = $"局部截图：{_store.Settings.RegionHotkey}    全屏截图：{_store.Settings.FullScreenHotkey}";
@@ -464,7 +481,7 @@ public partial class MainWindow : Window
         {
             _store.SaveSettings();
             var hwnd = new WindowInteropHelper(this).Handle;
-            _hotkeys.Register(hwnd, _store.Settings.RegionHotkey, _store.Settings.FullScreenHotkey);
+            ApplyHotkeys(hwnd);
             UpdateHotkeyHint();
         });
         win.Owner = this;

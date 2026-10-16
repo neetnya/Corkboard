@@ -5,6 +5,15 @@ using Corkboard.Models;
 
 namespace Corkboard.Services;
 
+public readonly struct HotkeyRegisterResult
+{
+    public bool RegionOk { get; init; }
+    public bool FullOk { get; init; }
+    public int RegionError { get; init; }
+    public int FullError { get; init; }
+    public bool Ok => RegionOk && FullOk;
+}
+
 /// <summary>RegisterHotKey 全局快捷键服务。</summary>
 public sealed class GlobalHotkeyService : IDisposable
 {
@@ -14,6 +23,7 @@ public sealed class GlobalHotkeyService : IDisposable
     public const int WM_HOTKEY = 0x0312;
     public const int RegionHotkeyId = 9001;
     public const int FullScreenHotkeyId = 9002;
+    private const uint MOD_NOREPEAT = 0x4000;
 
     private IntPtr _hwnd;
     private bool _regionRegistered, _fullRegistered;
@@ -21,12 +31,21 @@ public sealed class GlobalHotkeyService : IDisposable
     public event Action? RegionRequested;
     public event Action? FullScreenRequested;
 
-    public void Register(IntPtr hwnd, HotkeyConfig region, HotkeyConfig full)
+    public HotkeyRegisterResult Register(IntPtr hwnd, HotkeyConfig region, HotkeyConfig full)
     {
         _hwnd = hwnd;
         UnregisterAll();
-        _regionRegistered = RegisterHotKey(hwnd, RegionHotkeyId, ToMods(region.Modifiers), ToVk(region.Key));
-        _fullRegistered = RegisterHotKey(hwnd, FullScreenHotkeyId, ToMods(full.Modifiers), ToVk(full.Key));
+        _regionRegistered = RegisterHotKey(hwnd, RegionHotkeyId, ToMods(region.Modifiers) | MOD_NOREPEAT, ToVk(region.Key));
+        int regionErr = _regionRegistered ? 0 : Marshal.GetLastWin32Error();
+        _fullRegistered = RegisterHotKey(hwnd, FullScreenHotkeyId, ToMods(full.Modifiers) | MOD_NOREPEAT, ToVk(full.Key));
+        int fullErr = _fullRegistered ? 0 : Marshal.GetLastWin32Error();
+        return new HotkeyRegisterResult
+        {
+            RegionOk = _regionRegistered,
+            FullOk = _fullRegistered,
+            RegionError = regionErr,
+            FullError = fullErr,
+        };
     }
 
     public void UnregisterAll()

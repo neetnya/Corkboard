@@ -41,7 +41,7 @@ public sealed class SettingsWindow : Window
 
         var hint = new TextBlock
         {
-            Text = "点击输入框后按下组合键即可录制（如 Ctrl+Alt+A），Esc 取消。",
+            Text = "点击输入框后按下组合键即可录制（如 Ctrl+Alt+A）。必须带 Ctrl / Alt / Shift / Win 之一，两个快捷键不能相同。Esc 取消录制。",
             Foreground = Brushes.Gray,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 6, 0, 0),
@@ -67,6 +67,20 @@ public sealed class SettingsWindow : Window
 
         ok.Click += (_, _) =>
         {
+            var region = _regionBox.Working;
+            var full = _fullBox.Working;
+            if (region.Modifiers == HotModifiers.None || full.Modifiers == HotModifiers.None)
+            {
+                MessageBox.Show(this, "快捷键至少要包含一个修饰键（Ctrl / Alt / Shift / Win），以免抢走普通按键。",
+                    "无效快捷键", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (region.SameAs(full))
+            {
+                MessageBox.Show(this, "两个快捷键不能相同。",
+                    "无效快捷键", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             _regionBox.Apply();
             _fullBox.Apply();
             _onSave();
@@ -131,6 +145,8 @@ internal sealed class HotkeyBox : TextBox
         _working.Key = key;
         Text = _working.ToString();
     }
+
+    public HotkeyConfig Working => _working;
 
     public void Apply()
     {

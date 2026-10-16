@@ -19,6 +19,9 @@ public sealed class HotkeyConfig
     public HotModifiers Modifiers { get; set; } = HotModifiers.Control | HotModifiers.Alt;
     public Key Key { get; set; } = Key.A;
 
+    public bool SameAs(HotkeyConfig other)
+        => other is not null && Modifiers == other.Modifiers && Key == other.Key;
+
     public override string ToString()
     {
         var parts = new System.Collections.Generic.List<string>();
