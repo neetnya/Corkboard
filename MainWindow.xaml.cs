@@ -159,8 +159,8 @@ public partial class MainWindow : Window
     private const int SW_HIDE = 0;
     private const int SW_SHOWNOACTIVATE = 4;
 
-    /// <summary>窗口是否正显示在屏幕上（最小化或已隐藏都不算）。</summary>
-    private bool IsOnScreen => IsVisible && WindowState == WindowState.Normal;
+    /// <summary>窗口是否正显示在屏幕上（最小化或已隐藏都不算；最大化也算）。</summary>
+    private bool IsOnScreen => IsVisible && WindowState != WindowState.Minimized;
 
     private async Task CaptureSilentlyAsync(Func<Task<BitmapSource?>> capture)
     {
@@ -171,12 +171,12 @@ public partial class MainWindow : Window
         var hwnd = new WindowInteropHelper(this).Handle;
         try
         {
-            // 只有窗口真的显示在屏幕上时才临时隐藏，避免把自己拍进截图
+            // 只要窗口在屏幕上（含最大化）就临时隐藏，避免把自己拍进截图
             if (hide && hwnd != IntPtr.Zero) ShowWindow(hwnd, SW_HIDE);
-            await Task.Delay(60);
+            await WaitForComposedFramesAsync(2);
 
             BitmapSource? bmp = null;
-            try { bmp = await capture(); } catch { /* 截图失败忽略 */ }
+            try { bmp = await capture(); } catch { /* 截图失败忽略；后续由捕获层返回 null */ }
             if (bmp != null) AddScreenshot(bmp);
         }
         finally
@@ -191,6 +191,31 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>等 DWM 交出不含本窗口的帧。Rendering 不来时 50ms 兜底，避免死等。</summary>
+    private static async Task WaitForComposedFramesAsync(int frames)
+    {
+        for (int i = 0; i < frames; i++)
+        {
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler? onRender = null;
+            var timeout = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(50),
+            };
+            void Finish()
+            {
+                CompositionTarget.Rendering -= onRender;
+                timeout.Stop();
+                tcs.TrySetResult();
+            }
+            onRender = (_, _) => Finish();
+            timeout.Tick += (_, _) => Finish();
+            CompositionTarget.Rendering += onRender;
+            timeout.Start();
+            await tcs.Task;
+        }
+    }
+
     private async void OnRegionHotkey()
     {
         await CaptureSilentlyAsync(async () =>
@@ -200,7 +225,7 @@ public partial class MainWindow : Window
             sel.RegionSelected += r => region = r;
             sel.ShowDialog();
             if (region is not Rect r) return null;
-            await Task.Delay(60); // 等遮罩窗口消失后再捕获
+            await WaitForComposedFramesAsync(2); // 等遮罩窗口从画面上消失
             return ScreenCapture.CaptureRegion((int)r.X, (int)r.Y, (int)r.Width, (int)r.Height);
         });
     }
