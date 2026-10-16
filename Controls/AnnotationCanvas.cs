@@ -20,10 +20,12 @@ public sealed class AnnotationCanvas : Canvas
     private bool _drawing;
 
     public bool IsBrushMode { get; set; }
+    public bool IsEraseMode { get; set; }
     public Color BrushColor { get; set; } = Colors.Red;
     public double BrushThickness { get; set; } = 3.0;
 
     public IReadOnlyList<Stroke> Strokes => _strokes;
+    public event Action? Changed;
 
     public AnnotationCanvas()
     {
@@ -36,6 +38,12 @@ public sealed class AnnotationCanvas : Canvas
         base.OnMouseLeftButtonDown(e);
         if (!IsBrushMode) return; // 非编辑模式：冒泡给父级用于拖拽
         var p = e.GetPosition(this);
+        if (IsEraseMode)
+        {
+            if (RemoveStrokeNear(p)) Changed?.Invoke();
+            e.Handled = true;
+            return;
+        }
         _currentStroke = new Stroke { Color = ColorUtil.ToHex(BrushColor), Thickness = BrushThickness };
         _currentStroke.Points.Add(new Pt(p.X, p.Y));
         _currentPath = MakePathVisual(_currentStroke);
@@ -70,11 +78,55 @@ public sealed class AnnotationCanvas : Canvas
                 if (_currentStroke.Points.Count < 2)
                     Children.Remove(_currentPath); // 点一下不算一笔
                 else
+                {
                     _strokes.Add(_currentStroke);
+                    Changed?.Invoke();
+                }
             }
             _currentStroke = null;
             _currentPath = null;
         }
+    }
+
+    public bool RemoveStrokeNear(Point p)
+    {
+        for (int i = _strokes.Count - 1; i >= 0; i--)
+        {
+            var s = _strokes[i];
+            double tol = s.Thickness / 2 + 8;
+            if (!Hits(s, p, tol)) continue;
+            _strokes.RemoveAt(i);
+            RebuildVisuals();
+            return true;
+        }
+        return false;
+    }
+
+    private void RebuildVisuals()
+    {
+        Children.Clear();
+        foreach (var s in _strokes) Children.Add(MakePathVisual(s));
+    }
+
+    private static bool Hits(Stroke s, Point p, double tol)
+    {
+        for (int i = 1; i < s.Points.Count; i++)
+        {
+            var a = s.Points[i - 1];
+            var b = s.Points[i];
+            if (DistToSegment(p.X, p.Y, a.X, a.Y, b.X, b.Y) <= tol) return true;
+        }
+        return false;
+    }
+
+    private static double DistToSegment(double px, double py, double x1, double y1, double x2, double y2)
+    {
+        double dx = x2 - x1, dy = y2 - y1;
+        double len2 = dx * dx + dy * dy;
+        if (len2 < 1e-9) return Math.Sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+        double t = Math.Clamp(((px - x1) * dx + (py - y1) * dy) / len2, 0, 1);
+        double hx = px - (x1 + t * dx), hy = py - (y1 + t * dy);
+        return Math.Sqrt(hx * hx + hy * hy);
     }
 
     public void LoadAnnotations(IEnumerable<Stroke> strokes)
