@@ -3,26 +3,36 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:Corkboard.Controls"
         Title="截图线索板" Height="820" Width="1240"
+        MinWidth="900" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         Closing="Window_Closing">
     <DockPanel>
-        <!-- 顶栏：分组管理 -->
+        <!-- 顶栏：分组 / 白板 / 设置 -->
         <Border DockPanel.Dock="Top" Background="#F3F3F3" BorderBrush="#DDD" BorderThickness="0,0,0,1" Padding="8,6">
             <StackPanel Orientation="Horizontal">
                 <ComboBox x:Name="GroupCombo" Width="160" Height="28" VerticalContentAlignment="Center" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="GroupCombo_SelectionChanged"/>
-                <Button Content="新建分组" Margin="10,0,0,0" Click="NewGroup_Click"/>
+                <Button Content="新建分组" Margin="8,0,0,0" Click="NewGroup_Click"/>
                 <Button Content="重命名" Margin="6,0,0,0" Click="RenameGroup_Click"/>
-                <Button Content="删除分组" Margin="6,0,0,0" Click="DeleteGroup_Click"/>
-                <Button Content="添加便条" Margin="18,0,0,0" Click="AddNote_Click"/>
-                <Button Content="清空白板" Margin="6,0,0,0" Click="ClearBoard_Click"/>
-                <Button Content="设置" Margin="6,0,0,0" Click="Settings_Click"/>
-                <TextBlock x:Name="HotkeyHint" VerticalAlignment="Center" Margin="18,0,0,0" Foreground="#777"/>
+                <Button Content="删除分组" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="DeleteGroup_Click"/>
+                <Rectangle Width="1" Fill="#DDD" Margin="14,4" />
+                <Button Content="添加便条" Click="AddNote_Click"/>
+                <Button Content="清空白板" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="ClearBoard_Click"/>
+                <Rectangle Width="1" Fill="#DDD" Margin="14,4" />
+                <Button Content="设置" Click="Settings_Click"/>
             </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#F3F3F3" BorderBrush="#DDD" BorderThickness="0,1,0,0" Padding="10,4">
+            <TextBlock x:Name="HotkeyHint" Foreground="#777" FontSize="12"/>
         </Border>
 
         <!-- 右侧缩略图列表 -->
         <Border DockPanel.Dock="Right" Width="150" BorderBrush="#DDD" BorderThickness="1,0,0,0" Background="#FAFAFA">
-            <DockPanel>
+            <Grid>
+                <TextBlock x:Name="ListHint" Text="截图后出现在这里&#x0a;单击钉到白板"
+                           TextAlignment="Center" TextWrapping="Wrap"
+                           Foreground="#AAA" FontSize="11" Margin="12,24"
+                           IsHitTestVisible="False"/>
                 <ListBox x:Name="ShotList" Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.ScrollUnit="Pixel"
@@ -71,7 +81,7 @@
                     </ListBox.Resources>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="6">
+                            <StackPanel Margin="6" ToolTip="单击添加到白板">
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="删除" Click="ShotListDeleteItem_Click"/>
@@ -86,12 +96,18 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-            </DockPanel>
+            </Grid>
         </Border>
 
         <!-- 白板：外层裁切，内层可平移 -->
         <Grid ClipToBounds="True" Background="White">
             <controls:BoardCanvas x:Name="Board"/>
+            <TextBlock x:Name="BoardHint"
+                       Text="单击右侧截图钉到白板，可拖拽、滚轮缩放；中键拖动画布"
+                       Foreground="#BBBBBB" FontSize="14"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextWrapping="Wrap" TextAlignment="Center" Margin="40"
+                       IsHitTestVisible="False"/>
         </Grid>
     </DockPanel>
 </Window>

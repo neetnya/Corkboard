@@ -122,6 +122,7 @@ public partial class MainWindow : Window
         ShotList.ItemsSource = g.Items;
         foreach (var it in g.Items) it.Thumbnail = _thumbs.Get(it);
         LoadBoard(g.Board);
+        UpdateHints();
     }
 
     private void GroupCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -262,6 +263,7 @@ public partial class MainWindow : Window
         if (_currentGroup is null) return;
         var item = _store.AddScreenshot(_currentGroup, bmp);
         item.Thumbnail = _thumbs.Get(item);
+        UpdateHints();
     }
 
     // ---------- 右侧列表 ----------
@@ -317,6 +319,7 @@ public partial class MainWindow : Window
         _store.DeleteScreenshot(_currentGroup, item);
         _thumbs.Invalidate(item.Id);
         SaveCurrentBoard(immediate: true);
+        UpdateHints();
     }
 
     // ---------- 白板 ----------
@@ -341,6 +344,7 @@ public partial class MainWindow : Window
 
         Board.AddImageOnTop(ctl, x, y);
         SaveCurrentBoard(immediate: true);
+        UpdateHints();
     }
 
     private void AddNote_Click(object sender, RoutedEventArgs e)
@@ -357,6 +361,7 @@ public partial class MainWindow : Window
         note.Changed += SaveCurrentBoard;
         Board.AddNoteOnTop(note, state.X, state.Y);
         SaveCurrentBoard(immediate: true);
+        UpdateHints();
     }
 
     /// <summary>清空白板：只清左侧，右侧截图列表与磁盘文件保留。</summary>
@@ -368,6 +373,7 @@ public partial class MainWindow : Window
         FinishEdit();
         Board.ClearAll();
         SaveCurrentBoard(immediate: true);
+        UpdateHints();
     }
 
     private void OnDeleteImageLeft(BoardImageControl ctl)
@@ -375,6 +381,7 @@ public partial class MainWindow : Window
         Board.RemoveItem(ctl);
         if (_editing == ctl) FinishEdit();
         SaveCurrentBoard(immediate: true);
+        UpdateHints();
     }
 
     private void OnWriteBack(BoardImageControl ctl)
@@ -470,6 +477,15 @@ public partial class MainWindow : Window
             note.Changed += SaveCurrentBoard;
             Board.AddNote(note, n.X, n.Y, n.Z);
         }
+        UpdateHints();
+    }
+
+    private void UpdateHints()
+    {
+        if (BoardHint != null)
+            BoardHint.Visibility = Board.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (ListHint != null)
+            ListHint.Visibility = ShotList.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ---------- 图片标注编辑（弹窗） ----------

@@ -32,11 +32,15 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
+            </Trigger>
+        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#C42B1C"/>
+            <Setter Property="BorderBrush" Value="#E0B4B4"/>
         </Style>
     </Application.Resources>
 </Application>

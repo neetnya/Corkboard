@@ -144,6 +144,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 | 添加便条 | 在白板上新建一张空白便条 |
 | **清空白板** | **只清空左侧白板**（移除全部图片与便条），右侧截图列表与磁盘文件**不受影响**（有二次确认） |
 | 设置 | 录制两个全局快捷键 |
+| 底栏 | 显示当前全局快捷键 |
 
 ### 分组管理
 
