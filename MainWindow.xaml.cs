@@ -243,13 +243,13 @@ public partial class MainWindow : Window
             sel.ShowDialog();
             if (region is not Rect r) return null;
             await WaitForComposedFramesAsync(2); // 等遮罩窗口从画面上消失
-            return ScreenCapture.CaptureRegion((int)r.X, (int)r.Y, (int)r.Width, (int)r.Height);
+            return await ScreenCapture.CaptureRegionAsync((int)r.X, (int)r.Y, (int)r.Width, (int)r.Height);
         });
     }
 
     private async void OnFullHotkey()
     {
-        await CaptureSilentlyAsync(() => Task.FromResult<BitmapSource?>(ScreenCapture.CapturePrimaryScreen()));
+        await CaptureSilentlyAsync(() => ScreenCapture.CapturePointerScreenAsync());
     }
 
     private void AddScreenshot(BitmapSource bmp)

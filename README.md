@@ -124,7 +124,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 | 快捷键 | 默认值 | 作用 |
 |---|---|---|
 | 局部截图 | `Ctrl + Alt + A` | 全屏遮罩 → 拖拽框选 → 松手即存 |
-| 全屏截图 | `Ctrl + Alt + S` | 立即截取主屏并保存 |
+| 全屏截图 | `Ctrl + Alt + S` | 立即截取鼠标所在显示器并保存 |
 
 在顶部「设置」中点击输入框后按下组合键即可录制，`Esc` 取消。必须带 Ctrl / Alt / Shift / Win 之一，两个快捷键不能相同。若注册失败（被其它软件占用），启动或保存设置时会提示，可再换一组。按住不放不会连发截图。
 
@@ -236,7 +236,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 采用「**服务层 + 自定义控件 + 主窗口编排**」的轻量结构：
 
 - `StoreService`：唯一的持久化出入口（JSON 与 PNG 读写）。
-- `ScreenCapture` / `GlobalHotkeyService`：纯 P/Invoke 实现，无第三方依赖。
+- `ScreenCapture` / `WinRtGraphicsCapture` / `GlobalHotkeyService`：WinRT 捕获 + P/Invoke 热键，无第三方 NuGet。
 - `BoardCanvas`：白板容器，维护**图片层（z < 10000）**与**便条层（z ≥ 10000）**两套独立层级，保证便条恒在图片之上。
 - `BoardImageControl`：单张白板图片，负责拖拽、置顶、锚点缩放、黑色边框与右键菜单。
 - `AnnotationCanvas`：画笔标注层，坐标存于**图像原始像素空间**，因此缩放/写回后严格对齐。
@@ -250,7 +250,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 
 | 需求 | 实现方式 |
 |---|---|
-| 屏幕捕获 | GDI `BitBlt` + `CreateBitmapSourceFromHBitmap` |
+| 屏幕捕获 | 优先 `Windows.Graphics.Capture`（适合游戏/GPU 窗口），失败回退 GDI `BitBlt`（`CAPTUREBLT`） |
 | 全局快捷键 | `RegisterHotKey` + `HwndSource.AddHook` 处理 `WM_HOTKEY` |
 | 缩放锚点不漂移 | 左上角缩放 + 用白板绝对坐标补偿位置 |
 | 命中区域随缩放 | 去掉控件透明背景，命中跟随缩放后的实际视觉范围 |
@@ -265,7 +265,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 
 **已知限制**
 
-- 全屏截图仅捕获**主屏**（多显示器不合并）。
+- 全屏截图捕获**鼠标所在显示器**（不合并多屏）。框选可跨屏，但单次框选若落在一块屏内会走 Graphics Capture。
 - 编辑窗口为「适应窗口」显示，暂不支持在编辑窗口内滚轮缩放。
 - 白板空间固定为窗口大小，图片拖出可视区域不会自动出现滚动条。
 - 缩放后不会自动把图片位置约束回白板范围内。
