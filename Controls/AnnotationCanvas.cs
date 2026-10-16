@@ -51,6 +51,8 @@ public sealed class AnnotationCanvas : Canvas
         if (_drawing && _currentStroke != null && _currentPath != null)
         {
             var p = e.GetPosition(this);
+            var last = _currentStroke.Points[^1];
+            if (Math.Abs(p.X - last.X) + Math.Abs(p.Y - last.Y) < 1.5) return;
             _currentStroke.Points.Add(new Pt(p.X, p.Y));
             _currentPath.Data = BuildGeometry(_currentStroke);
         }

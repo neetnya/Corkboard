@@ -128,6 +128,7 @@ public sealed class BoardImageControl : UserControl
         _scaleTransform.ScaleX = newScale;
         _scaleTransform.ScaleY = newScale;
         UpdateFrameSize();
+        Changed?.Invoke();
         e.Handled = true;
     }
 

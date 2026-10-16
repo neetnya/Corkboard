@@ -27,10 +27,13 @@ public partial class MainWindow : Window
     private EditorWindow? _editorWindow;
     private int _cascade;
     private bool _capturing;
+    private readonly System.Windows.Threading.DispatcherTimer _saveTimer;
 
     public MainWindow()
     {
         InitializeComponent();
+        _saveTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _saveTimer.Tick += (_, _) => FlushStore();
         _store.Initialize();
         _thumbs = new ThumbnailCache(_store);
         _hotkeys.RegionRequested += OnRegionHotkey;
@@ -110,7 +113,7 @@ public partial class MainWindow : Window
 
     private void LoadGroup(Group g)
     {
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
         FinishEdit();
         _currentGroup = g;
         _cascade = 0;
@@ -311,7 +314,7 @@ public partial class MainWindow : Window
 
         _store.DeleteScreenshot(_currentGroup, item);
         _thumbs.Invalidate(item.Id);
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
     }
 
     // ---------- 白板 ----------
@@ -335,7 +338,7 @@ public partial class MainWindow : Window
         _cascade++;
 
         Board.AddImageOnTop(ctl, x, y);
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
     }
 
     private void AddNote_Click(object sender, RoutedEventArgs e)
@@ -351,7 +354,7 @@ public partial class MainWindow : Window
         var note = new NoteControl(state) { Board = Board };
         note.Changed += SaveCurrentBoard;
         Board.AddNoteOnTop(note, state.X, state.Y);
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
     }
 
     /// <summary>清空白板：只清左侧，右侧截图列表与磁盘文件保留。</summary>
@@ -362,14 +365,14 @@ public partial class MainWindow : Window
             "清空白板", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         FinishEdit();
         Board.ClearAll();
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
     }
 
     private void OnDeleteImageLeft(BoardImageControl ctl)
     {
         Board.RemoveItem(ctl);
         if (_editing == ctl) FinishEdit();
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
     }
 
     private void OnWriteBack(BoardImageControl ctl)
@@ -383,7 +386,7 @@ public partial class MainWindow : Window
             _thumbs.Invalidate(ctl.Screenshot.Id);
             ctl.Screenshot.Thumbnail = _thumbs.Get(ctl.Screenshot);
             ctl.SaveState();
-            SaveCurrentBoard();
+            SaveCurrentBoard(immediate: true);
             MessageBox.Show(this, "已写入右侧并覆盖原图。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
@@ -392,7 +395,32 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SaveCurrentBoard()
+    private void SaveCurrentBoard() => SaveCurrentBoard(immediate: false);
+
+    private void SaveCurrentBoard(bool immediate)
+    {
+        if (_currentGroup is null) return;
+        CaptureBoardToModel();
+        if (immediate)
+        {
+            _saveTimer.Stop();
+            _store.SaveStore();
+        }
+        else
+        {
+            _saveTimer.Stop();
+            _saveTimer.Start();
+        }
+    }
+
+    private void FlushStore()
+    {
+        _saveTimer.Stop();
+        if (_currentGroup is null) return;
+        _store.SaveStore();
+    }
+
+    private void CaptureBoardToModel()
     {
         if (_currentGroup is null) return;
         var board = _currentGroup.Board;
@@ -408,7 +436,6 @@ public partial class MainWindow : Window
             n.SaveState();
             board.Notes.Add(n.State);
         }
-        _store.SaveStore();
     }
 
     private void LoadBoard(BoardState board)
@@ -452,7 +479,7 @@ public partial class MainWindow : Window
             {
                 ctl.Annotation.LoadAnnotations(win.Result);
                 ctl.SaveState();
-                SaveCurrentBoard();
+                SaveCurrentBoard(immediate: true);
             }
             _editing = null;
             _editorWindow = null;
@@ -470,7 +497,7 @@ public partial class MainWindow : Window
             try { w.Close(); } catch { }
         }
         _editing = null;
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
     }
 
     // ---------- 设置 / 关闭 ----------
@@ -492,7 +519,7 @@ public partial class MainWindow : Window
     {
         // 关闭即退出进程
         FinishEdit();
-        SaveCurrentBoard();
+        SaveCurrentBoard(immediate: true);
         _hotkeys.Dispose();
     }
 
