@@ -553,7 +553,7 @@ public partial class MainWindow : Window
 
     private BitmapSource? LoadFullImage(string path) => _images.Get(path);
 
-    private static string? Prompt(string title, string label, string initial)
+    private string? Prompt(string title, string label, string initial)
     {
         var win = new Window
         {
