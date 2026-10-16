@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 {
     private readonly StoreService _store = new();
     private ThumbnailCache _thumbs = null!;
+    private readonly ImageCache _images = new();
     private readonly GlobalHotkeyService _hotkeys = new();
 
     private Group? _currentGroup;
@@ -380,7 +381,9 @@ public partial class MainWindow : Window
         try
         {
             var flat = ctl.RenderFlattened();
-            StoreService.SavePng(flat, _store.ResolvePath(ctl.Screenshot.File));
+            var path = _store.ResolvePath(ctl.Screenshot.File);
+            StoreService.SavePng(flat, path);
+            _images.Invalidate(path);
             ctl.Annotation.Clear();
             ctl.SetBaseImage(flat);
             _thumbs.Invalidate(ctl.Screenshot.Id);
@@ -525,21 +528,7 @@ public partial class MainWindow : Window
 
     // ---------- 工具 ----------
 
-    private static BitmapSource? LoadFullImage(string path)
-    {
-        if (!File.Exists(path)) return null;
-        try
-        {
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.UriSource = new Uri(path, UriKind.Absolute);
-            bmp.EndInit();
-            bmp.Freeze();
-            return bmp;
-        }
-        catch { return null; }
-    }
+    private BitmapSource? LoadFullImage(string path) => _images.Get(path);
 
     private static string? Prompt(string title, string label, string initial)
     {

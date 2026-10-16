@@ -72,9 +72,12 @@ Corkboard/
 │   └── Settings.cs          # 快捷键与设置
 ├── Services/                # 基础服务
 │   ├── StoreService.cs      # JSON + 文件夹 + PNG 读写
-│   ├── ScreenCapture.cs     # BitBlt 屏幕捕获
+│   ├── ScreenCapture.cs      # 屏幕捕获（Graphics Capture / BitBlt）
+│   ├── WinRtGraphicsCapture.cs
+│   ├── DispatcherQueueHelper.cs
 │   ├── GlobalHotkeyService.cs  # RegisterHotKey 全局热键
-│   ├── ThumbnailCache.cs    # 缩略图缓存
+│   ├── ThumbnailCache.cs    # 缩略图缓存（上限 120）
+│   ├── ImageCache.cs        # 原图弱引用缓存
 │   └── ColorUtil.cs         # 颜色转换
 └── Controls/                # 自定义控件
     ├── BoardCanvas.cs       # 白板画布（层级管理）
