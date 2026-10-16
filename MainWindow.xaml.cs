@@ -41,6 +41,7 @@ public partial class MainWindow : Window
         _hotkeys.FullScreenRequested += OnFullHotkey;
         Loaded += OnLoaded;
         Loaded += WarnIfStoreCorrupt;
+        Board.ViewChanged += SaveCurrentBoard;
     }
 
     // ---------- 初始化 ----------
@@ -439,11 +440,15 @@ public partial class MainWindow : Window
             n.SaveState();
             board.Notes.Add(n.State);
         }
+        board.ViewX = Board.ViewX;
+        board.ViewY = Board.ViewY;
     }
 
     private void LoadBoard(BoardState board)
     {
         Board.ClearAll();
+        Board.ViewX = board.ViewX;
+        Board.ViewY = board.ViewY;
         foreach (var img in board.Images)
         {
             var item = _currentGroup?.Items.FirstOrDefault(i => i.Id == img.ItemId);

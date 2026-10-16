@@ -57,6 +57,8 @@ public sealed class BoardState
 {
     public List<BoardImageState> Images { get; set; } = new();
     public List<NoteState> Notes { get; set; } = new();
+    public double ViewX { get; set; }
+    public double ViewY { get; set; }
 }
 
 /// <summary>分组（对应一个文件夹）。</summary>

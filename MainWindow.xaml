@@ -89,7 +89,9 @@
             </DockPanel>
         </Border>
 
-        <!-- 白板 -->
-        <controls:BoardCanvas x:Name="Board" ClipToBounds="True" Background="White"/>
+        <!-- 白板：外层裁切，内层可平移 -->
+        <Grid ClipToBounds="True" Background="White">
+            <controls:BoardCanvas x:Name="Board"/>
+        </Grid>
     </DockPanel>
 </Window>
