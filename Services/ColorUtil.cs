@@ -12,5 +12,10 @@ public static class ColorUtil
         catch { return Colors.Red; }
     }
 
-    public static SolidColorBrush Brush(string hex) => new(FromHex(hex));
+    public static SolidColorBrush Brush(string hex)
+    {
+        var b = new SolidColorBrush(FromHex(hex));
+        b.Freeze();
+        return b;
+    }
 }

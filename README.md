@@ -233,6 +233,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 
 - `Modifiers`：`None` / `Alt` / `Control` / `Shift` / `Win`，多个用逗号分隔。
 - `Key`：WPF `Key` 枚举名，如 `A`、`S`、`F1`、`D1`、`OemPlus` 等。
+- 截图始终保存为 PNG。
 
 ---
 

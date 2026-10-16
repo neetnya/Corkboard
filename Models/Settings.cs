@@ -47,5 +47,4 @@ public sealed class AppSettings
 {
     public HotkeyConfig RegionHotkey { get; set; } = new() { Modifiers = HotModifiers.Control | HotModifiers.Alt, Key = Key.A };
     public HotkeyConfig FullScreenHotkey { get; set; } = new() { Modifiers = HotModifiers.Control | HotModifiers.Alt, Key = Key.S };
-    public string ImageFormat { get; set; } = "png";
 }
