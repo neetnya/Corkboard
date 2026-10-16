@@ -8,6 +8,13 @@ using Corkboard.Models;
 
 namespace Corkboard.Services;
 
+public enum StoreLoadStatus
+{
+    Ok,
+    CreatedNew,
+    Corrupt,
+}
+
 /// <summary>负责 store.json / settings.json / 分组文件夹 / PNG 的读写。</summary>
 public sealed class StoreService
 {
@@ -24,26 +31,83 @@ public sealed class StoreService
 
     public Store Store { get; private set; } = new();
     public AppSettings Settings { get; private set; } = new();
+    public StoreLoadStatus LoadStatus { get; private set; } = StoreLoadStatus.CreatedNew;
+    public string? CorruptBackupPath { get; private set; }
 
     public void Initialize()
     {
         Directory.CreateDirectory(DataDirectory);
-        Store = Load<Store>(StorePath) ?? new Store();
-        Settings = Load<AppSettings>(SettingsPath) ?? new AppSettings();
-        EnsureDefaults();
+        LoadStore();
+        LoadSettings();
     }
 
-    private void EnsureDefaults()
+    private void LoadStore()
     {
+        if (!File.Exists(StorePath))
+        {
+            Store = new Store();
+            EnsureDefaults();
+            SaveStore();
+            LoadStatus = StoreLoadStatus.CreatedNew;
+            return;
+        }
+
+        if (TryDeserialize<Store>(StorePath, out var loaded) && loaded is not null)
+        {
+            Store = loaded;
+            LoadStatus = StoreLoadStatus.Ok;
+            if (EnsureDefaults()) SaveStore();
+            return;
+        }
+
+        // 损坏：备份后用空白仓库，本次启动不覆盖原文件
+        Store = new Store();
+        EnsureDefaults();
+        LoadStatus = StoreLoadStatus.Corrupt;
+        try
+        {
+            CorruptBackupPath = StorePath + ".corrupt";
+            File.Copy(StorePath, CorruptBackupPath, overwrite: true);
+        }
+        catch
+        {
+            CorruptBackupPath = null;
+        }
+    }
+
+    private void LoadSettings()
+    {
+        if (!File.Exists(SettingsPath))
+        {
+            Settings = new AppSettings();
+            return;
+        }
+        if (TryDeserialize<AppSettings>(SettingsPath, out var s) && s is not null)
+        {
+            Settings = s;
+            return;
+        }
+        try { File.Copy(SettingsPath, SettingsPath + ".corrupt", overwrite: true); } catch { }
+        Settings = new AppSettings();
+    }
+
+    /// <summary>补齐缺省分组。返回是否改动了内存中的数据。</summary>
+    private bool EnsureDefaults()
+    {
+        bool changed = false;
         if (Store.Groups.Count == 0)
         {
             var g = new Group { Name = "默认分组" };
             Store.Groups.Add(g);
             Store.CurrentGroupId = g.Id;
+            changed = true;
         }
         if (string.IsNullOrEmpty(Store.CurrentGroupId) || Store.Groups.All(g => g.Id != Store.CurrentGroupId))
+        {
             Store.CurrentGroupId = Store.Groups[0].Id;
-        SaveStore();
+            changed = true;
+        }
+        return changed;
     }
 
     public Group? CurrentGroup => Store.Groups.FirstOrDefault(g => g.Id == Store.CurrentGroupId);
@@ -51,10 +115,10 @@ public sealed class StoreService
     public void SaveStore()
     {
         Directory.CreateDirectory(DataDirectory);
-        File.WriteAllText(StorePath, JsonSerializer.Serialize(Store, JsonOpts));
+        AtomicWrite(StorePath, JsonSerializer.Serialize(Store, JsonOpts));
     }
 
-    public void SaveSettings() => File.WriteAllText(SettingsPath, JsonSerializer.Serialize(Settings, JsonOpts));
+    public void SaveSettings() => AtomicWrite(SettingsPath, JsonSerializer.Serialize(Settings, JsonOpts));
 
     public string ResolvePath(string relative)
         => Path.Combine(DataDirectory, relative.Replace('/', Path.DirectorySeparatorChar));
@@ -100,10 +164,31 @@ public sealed class StoreService
         encoder.Save(fs);
     }
 
-    private static T? Load<T>(string path) where T : class
+    private static void AtomicWrite(string path, string contents)
     {
-        if (!File.Exists(path)) return null;
-        try { return JsonSerializer.Deserialize<T>(File.ReadAllText(path), JsonOpts); }
-        catch { return null; }
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, contents);
+        if (File.Exists(path))
+            File.Replace(tmp, path, destinationBackupFileName: null, ignoreMetadataErrors: true);
+        else
+            File.Move(tmp, path);
+    }
+
+    private static bool TryDeserialize<T>(string path, out T? value) where T : class
+    {
+        value = null;
+        try
+        {
+            var json = File.ReadAllText(path);
+            if (string.IsNullOrWhiteSpace(json)) return false;
+            value = JsonSerializer.Deserialize<T>(json, JsonOpts);
+            return value is not null;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

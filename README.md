@@ -209,6 +209,8 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 ```
 
 > 标注（笔画）以矢量数据存于 `store.json`，因此编辑**不会**改动原始 PNG；只有执行「写入右侧」才会覆盖它。
+>
+> `store.json` / `settings.json` 采用「先写临时文件再替换」的原子写入。若启动时发现 JSON 损坏，会复制为 `store.json.corrupt` 并以空白分组打开，**不会立刻覆盖**原文件。
 
 ---
 
@@ -255,6 +257,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 | 扁平合成写回 | `RenderTargetBitmap` 以原始像素分辨率渲染（不含边框） |
 | 高 DPI | `app.manifest` 声明 `PerMonitorV2` |
 | 异常兜底 | `App.xaml.cs` 捕获未处理异常并写入 `error.log` |
+| 数据落盘 | 临时文件 + `File.Replace` 原子替换；JSON 损坏时备份为 `*.corrupt` |
 
 ---
 

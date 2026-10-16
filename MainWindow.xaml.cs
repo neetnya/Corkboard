@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         _hotkeys.RegionRequested += OnRegionHotkey;
         _hotkeys.FullScreenRequested += OnFullHotkey;
         Loaded += OnLoaded;
+        Loaded += WarnIfStoreCorrupt;
     }
 
     // ---------- 初始化 ----------
@@ -59,6 +60,16 @@ public partial class MainWindow : Window
             handled = true;
         }
         return IntPtr.Zero;
+    }
+
+    private void WarnIfStoreCorrupt(object sender, RoutedEventArgs e)
+    {
+        Loaded -= WarnIfStoreCorrupt;
+        if (_store.LoadStatus != StoreLoadStatus.Corrupt) return;
+        var bak = _store.CorruptBackupPath is null ? "" : $"\n备份：{_store.CorruptBackupPath}";
+        MessageBox.Show(this,
+            "白板数据文件已损坏，本次以空白分组打开，不会覆盖原文件，直到你做出修改。" + bak,
+            "数据未加载", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private void UpdateHotkeyHint()
