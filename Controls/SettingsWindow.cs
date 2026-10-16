@@ -50,7 +50,7 @@ public sealed class SettingsWindow : Window
         Grid.SetColumnSpan(hint, 2);
         grid.Children.Add(hint);
 
-        var ok = new Button { Content = "确定", Width = 80, IsDefault = true };
+        var ok = new Button { Content = "确定", Width = 80, IsDefault = true, Margin = new Thickness(0, 0, 8, 0) };
         var cancel = new Button { Content = "取消", Width = 80, IsCancel = true };
         var btns = new StackPanel
         {

@@ -16,6 +16,7 @@ public sealed class RegionSelectorWindow : Window
     private readonly Canvas _canvas;
     private readonly Path _mask;
     private readonly Rectangle _selRect;
+    private readonly TextBlock _sizeLabel;
 
     /// <summary>选区完成（参数为屏幕物理像素矩形）。</summary>
     public event Action<Rect>? RegionSelected;
@@ -49,8 +50,17 @@ public sealed class RegionSelectorWindow : Window
             Fill = Brushes.Transparent,
             Visibility = Visibility.Collapsed,
         };
+        _sizeLabel = new TextBlock
+        {
+            Foreground = Brushes.White,
+            Background = new SolidColorBrush(Color.FromArgb(0xC0, 0, 0, 0)),
+            Padding = new Thickness(6, 2, 6, 2),
+            FontSize = 12,
+            Visibility = Visibility.Collapsed,
+        };
         _canvas.Children.Add(_mask);
         _canvas.Children.Add(_selRect);
+        _canvas.Children.Add(_sizeLabel);
         Content = _canvas;
     }
 
@@ -110,6 +120,20 @@ public sealed class RegionSelectorWindow : Window
         _selRect.Width = w;
         _selRect.Height = h;
         _mask.Data = HoleGeometry(new Rect(x, y, w, h));
+
+        var a = PointToScreen(_startDip);
+        var b = PointToScreen(current);
+        int pw = (int)Math.Abs(a.X - b.X);
+        int ph = (int)Math.Abs(a.Y - b.Y);
+        _sizeLabel.Text = $"{pw} × {ph}";
+        _sizeLabel.Visibility = Visibility.Visible;
+        _sizeLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double lx = x + 6;
+        double ly = y + h + 8;
+        if (ly + _sizeLabel.DesiredSize.Height > Height)
+            ly = Math.Max(0, y - _sizeLabel.DesiredSize.Height - 6);
+        Canvas.SetLeft(_sizeLabel, lx);
+        Canvas.SetTop(_sizeLabel, ly);
     }
 
     private Geometry FullScreenGeometry()

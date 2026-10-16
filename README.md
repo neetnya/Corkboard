@@ -57,7 +57,7 @@
 ```
 Corkboard/
 ├── Corkboard.sln            # 解决方案
-├── Corkboard.csproj         # 项目文件（net8.0-windows / WPF）
+├── Corkboard.csproj         # 项目文件（net8.0-windows10.0.19041.0 / WPF）
 ├── app.manifest             # 应用清单（PerMonitorV2 DPI 感知）
 ├── App.xaml / App.xaml.cs   # 应用入口 + 全局异常日志 + 按钮样式
 ├── MainWindow.xaml / .cs    # 主窗口与全部业务编排
@@ -133,7 +133,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 
 **截图全程静默**：不弹任何确认框，也**不会把主窗口拉到前台**——即使窗口正处于最小化、最大化，或藏在其它程序后面，截完图依旧保持原样，不会打断你正在玩的游戏。窗口若正显示在屏幕上（含最大化），会先临时隐藏再截，避免把自己拍进去。截图会立即保存到当前分组并出现在右侧列表。
 
-> 框选时按 `Esc` 可取消本次截图。
+> 框选时按 `Esc` 可取消本次截图。拖拽时显示选区像素宽高，松手即存、不做二次确认。
 
 ### 顶部工具栏
 
@@ -177,7 +177,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 
 ### 写回原图
 
-右键白板图片 → **写入右侧**：把「原图 + 标注」扁平合成为 PNG 并**覆盖原始截图文件**，同时刷新右侧缩略图。此操作不可撤销。
+右键白板图片 → **写入右侧**：把「原图 + 标注」扁平合成为 PNG 并**覆盖原始截图文件**，同时刷新右侧缩略图。写入前会确认，确认后不可撤销。
 
 ### 右键菜单一览
 
@@ -228,7 +228,6 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
 {
   "RegionHotkey": { "Modifiers": "Control, Alt", "Key": "A" },
   "FullScreenHotkey": { "Modifiers": "Control, Alt", "Key": "S" },
-  "ImageFormat": "png"
 }
 ```
 

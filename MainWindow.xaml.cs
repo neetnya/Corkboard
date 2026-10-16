@@ -386,6 +386,8 @@ public partial class MainWindow : Window
 
     private void OnWriteBack(BoardImageControl ctl)
     {
+        if (MessageBox.Show(this, "把标注写入并覆盖右侧原图？此操作不可恢复。",
+            "写入右侧", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         try
         {
             var flat = ctl.RenderFlattened();
@@ -558,13 +560,14 @@ public partial class MainWindow : Window
             Title = title,
             Width = 360,
             Height = 170,
-            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,
             WindowStyle = WindowStyle.SingleBorderWindow,
         };
         var box = new TextBox { Text = initial, Margin = new Thickness(0, 4, 0, 12) };
-        var ok = new Button { Content = "确定", Width = 80, IsDefault = true };
+        var ok = new Button { Content = "确定", Width = 80, IsDefault = true, Margin = new Thickness(0, 0, 8, 0) };
         var cancel = new Button { Content = "取消", Width = 80, IsCancel = true };
         string? result = null;
         ok.Click += (_, _) => { result = box.Text; win.DialogResult = true; };
