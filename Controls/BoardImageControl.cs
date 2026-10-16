@@ -11,7 +11,7 @@ namespace Corkboard.Controls;
 /// <summary>白板上的图片：可拖拽、滚轮缩放（锚点）、置顶、黑色边框、右键编辑/删除/写回。</summary>
 public sealed class BoardImageControl : UserControl
 {
-    private readonly Grid _host;
+    private readonly Canvas _host;
     private readonly Grid _contentRoot;
     private readonly Border _frame;
     private readonly ScaleTransform _scaleTransform = new(1.0, 1.0);
@@ -46,20 +46,27 @@ public sealed class BoardImageControl : UserControl
         _contentRoot.Children.Add(_baseImage);
         _contentRoot.Children.Add(Annotation);
 
-        // 黑色边框：固定屏幕粗细（不随缩放），不拦截鼠标
+        // 黑色边框：固定屏幕粗细（不随缩放），不拦截鼠标。
+        // 放在 Canvas 上并按可视尺寸排版——Grid 会把超出原图像素的孩子限制在原图矩形内，
+        // 放大超过 1x 时右边/下边框会缺一截。
         _frame = new Border
         {
             BorderBrush = Brushes.Black,
             BorderThickness = new Thickness(1),
             IsHitTestVisible = false,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top,
+            SnapsToDevicePixels = true,
         };
 
-        _host = new Grid { Width = image.PixelWidth, Height = image.PixelHeight };
+        _host = new Canvas { ClipToBounds = false };
+        Canvas.SetLeft(_contentRoot, 0);
+        Canvas.SetTop(_contentRoot, 0);
+        Canvas.SetLeft(_frame, 0);
+        Canvas.SetTop(_frame, 0);
         _host.Children.Add(_contentRoot);
         _host.Children.Add(_frame);
         Content = _host;
+        ClipToBounds = false;
+        UseLayoutRounding = true;
         Focusable = true;
         UpdateFrameSize();
 
@@ -147,8 +154,6 @@ public sealed class BoardImageControl : UserControl
         _baseImage.Source = img;
         _contentRoot.Width = img.PixelWidth;
         _contentRoot.Height = img.PixelHeight;
-        _host.Width = img.PixelWidth;
-        _host.Height = img.PixelHeight;
         UpdateFrameSize();
     }
 
@@ -191,7 +196,11 @@ public sealed class BoardImageControl : UserControl
 
     private void UpdateFrameSize()
     {
-        _frame.Width = _contentRoot.Width * _scaleTransform.ScaleX;
-        _frame.Height = _contentRoot.Height * _scaleTransform.ScaleY;
+        double w = Math.Max(1, _contentRoot.Width * _scaleTransform.ScaleX);
+        double h = Math.Max(1, _contentRoot.Height * _scaleTransform.ScaleY);
+        _host.Width = w;
+        _host.Height = h;
+        _frame.Width = w;
+        _frame.Height = h;
     }
 }
