@@ -6,17 +6,7 @@
 
 ## 目录
 
-- [功能特性](#功能特性)
-- [环境要求](#环境要求)
-- [目录结构](#目录结构)
-- [构建与运行](#构建与运行)
-- [使用说明](#使用说明)
-- [数据存储](#数据存储)
-- [配置说明](#配置说明)
-- [代码结构](#代码结构)
-- [技术要点](#技术要点)
-- [已知限制与常见问题](#已知限制与常见问题)
-- [重新生成图标](#重新生成图标)
+[TOC]
 
 ---
 
@@ -89,34 +79,11 @@ Corkboard/
     └── SettingsWindow.cs    # 设置窗口（快捷键录制）
 ```
 
----
-
-## 构建与运行
-
-进入项目根目录后执行：
+## 发布
 
 ```powershell
-# 1) 构建 Debug（离线可用）
-dotnet build Corkboard.sln
-# 生成：bin\Debug\net8.0-windows\Corkboard.exe
-
-# 或使用脚本
-powershell -ExecutionPolicy Bypass -File setup.ps1
+dotnet build -c Release
 ```
-
-### 发布
-
-```powershell
-# 框架依赖单文件（约 2–5 MB，需目标机安装 .NET 8 Desktop Runtime）
-powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish
-
-# 完全自包含单文件（约 140–160 MB，把 .NET 运行时一起打进去，免装运行时；首次发布需联网下载运行时包）
-powershell -ExecutionPolicy Bypass -File setup.ps1 -Publish -SelfContained
-```
-
-> **为什么自包含版会大出一百多 MB？** 自包含发布会把整个 .NET 运行时（约 70 MB）和 WPF 框架一起塞进 exe，所以体积必然在 140 MB 以上；框架依赖版只打包你自己的程序集，因此只有几 MB，代价是目标机必须先装 .NET 8 Desktop Runtime。二者功能完全一样。
-
-发布产物位于 `publish\Corkboard.exe`，数据文件会生成在 exe 同目录。
 
 ---
 
